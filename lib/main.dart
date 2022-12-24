@@ -1,13 +1,16 @@
+import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
 // Uint8List などの型を扱う場合があるので以下もインポートすると良いです
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 
 import 'package:image/image.dart' as im;
+import 'package:pytorch_mobile/model.dart';
+
+import 'package:pytorch_mobile/pytorch_mobile.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -310,14 +313,16 @@ class _MyHomePageState extends State<MyHomePage> {
               im.Image? imImage = im.decodeImage(pngUint8List);
               im.Image imResize =
                   im.copyResize(imImage!, width: 28, height: 28);
-              
+              print("予測");
+              var res = await predict(imResize);
+              print("終了");
               // 予測結果を表示
               showDialog(
                 context: context,
                 builder: (BuildContext context) {
                   return AlertDialog(
-                    title: const Text('予測結果'),
-                    content: Text("あ"),
+                    title: Text('予測結果'),
+                    content: Text(res.toString()),
                   );
                 },
               );
@@ -337,6 +342,19 @@ class _MyHomePageState extends State<MyHomePage> {
     final ui.Picture picture = recorder.endRecording();
     final ui.Image resizedImage = await picture.toImage(28, 28);
     return resizedImage;
+  }
+
+  predict(im.Image imResize) async {
+    //pytorch model
+    Model imageModel = await PyTorchMobile.loadModel('models/kmnist.pth');
+    //save to file
+    var pngBytes = im.encodePng(imResize);
+    var file = File('models/test.png');
+    await file.writeAsBytes(pngBytes);
+    var imagePrediction =
+        imageModel.getImagePrediction(file, 28, 28, "models/labels.csv");
+    print("imagePrediction: $imagePrediction");
+    return imagePrediction;
   }
 }
 
