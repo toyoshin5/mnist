@@ -11,7 +11,8 @@ import 'package:image/image.dart' as im;
 import 'package:pytorch_mobile/model.dart';
 
 import 'package:pytorch_mobile/pytorch_mobile.dart';
-
+import 'dart:async';
+import 'package:path_provider/path_provider.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -346,7 +347,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   predict(im.Image imResize) async {
     //pytorch model
-    Model imageModel = await PyTorchMobile.loadModel('models/kmnist.pth');
+    Model imageModel = await PyTorchMobile.loadModel('models/my_mnist_model.pth');
+    //読み込みが終わるまで待つ
     //save to file
     var pngBytes = im.encodePng(imResize);
     var file = File('models/test.png');
@@ -357,6 +359,8 @@ class _MyHomePageState extends State<MyHomePage> {
     return imagePrediction;
   }
 }
+
+
 
 // 実際に描画するキャンバス
 class PaintCanvas extends CustomPainter {
