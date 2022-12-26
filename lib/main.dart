@@ -237,6 +237,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return undoLines.isNotEmpty;
   }
 
+  //====================================ページ部分===================================
   @override
   Widget build(BuildContext context) {
     var canvasSize = min(MediaQuery.of(context).size.width,
@@ -294,6 +295,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ElevatedButton(
             child: const Text('予測'),
             onPressed: () async {
+              //ボタンを押したらキャンバスの画像を取得
               if (nowPoints.isNotEmpty) {
                 LinePoints l = LinePoints(List<Offset>.from(nowPoints));
                 lines.add(l);
@@ -307,7 +309,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 return;
               }
 
-              //resize ui.image
+              // io.imageをimage.imageに変換
               var pngBytes =
                   await image!.toByteData(format: ImageByteFormat.png);
               Uint8List pngUint8List = pngBytes!.buffer.asUint8List();
@@ -315,6 +317,7 @@ class _MyHomePageState extends State<MyHomePage> {
               im.Image imResize =
                   im.copyResize(imImage!, width: 28, height: 28);
               print("予測");
+              // 予測
               var res = await predict(imResize);
               print("終了");
               // 予測結果を表示
@@ -348,7 +351,6 @@ class _MyHomePageState extends State<MyHomePage> {
   predict(im.Image imResize) async {
     //pytorch model
     Model imageModel = await PyTorchMobile.loadModel('models/my_mnist_model.pth');
-    //読み込みが終わるまで待つ
     //save to file
     var pngBytes = im.encodePng(imResize);
     var file = File('models/test.png');
