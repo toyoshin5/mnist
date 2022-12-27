@@ -15,6 +15,8 @@ import 'package:pytorch_mobile/pytorch_mobile.dart';
 import 'dart:async';
 import 'package:path_provider/path_provider.dart';
 
+import 'modelEx.dart';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -57,7 +59,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool isDrawing = false;
   bool isOldDrawing = false;
   bool showPallet = true;
-  ui.Image? image;
+  ui.Image? uiimage;
 
   // ジェスチャー移動を検知
   void moveGestureDetector(Offset localPosition) {
@@ -108,29 +110,29 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> setOldImage() async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
+    canvas.drawColor(Colors.black, BlendMode.color);
     final p = Paint()
       ..isAntiAlias = true
       ..strokeCap = StrokeCap.round
       ..strokeWidth = 25.0; // 線の太さ
-    if (image != null) {
-      canvas.drawImage(image!, const Offset(0, 0), p);
+    if (uiimage != null) {
+      canvas.drawImage(uiimage!, const Offset(0, 0), p);
     }
     for (int i = 1; i < nowPoints.length; i++) {
       Offset p1 = nowPoints[i - 1];
       Offset p2 = nowPoints[i];
-      p.color = Colors.black;
+      p.color = Colors.white;
       canvas.drawLine(p1, p2, p);
     }
     final picture = recorder.endRecording();
-    var canvasSize = min(MediaQuery.of(context).size.width,
-        MediaQuery.of(context).size.height / 2);
+    var canvasSize = 280;
     int w = canvasSize.toInt();
     int h = canvasSize.toInt();
     ui.Image tmp = await picture.toImage(w, h);
     //tmpの解像度を28*28に変更
     ui.Image tmp2 = await resizeImage(tmp);
     setState(() {
-      image = tmp;
+      uiimage = tmp;
     });
   }
 
@@ -138,6 +140,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> setAllImage() async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
+    canvas.drawColor(Colors.black, BlendMode.color);
     final p = Paint()
       ..isAntiAlias = true
       ..strokeCap = StrokeCap.round
@@ -148,21 +151,20 @@ class _MyHomePageState extends State<MyHomePage> {
       for (int j = 1; j < l.points.length; j++) {
         Offset p1 = l.points[j - 1];
         Offset p2 = l.points[j];
-        p.color = Colors.black;
+        p.color = Colors.white;
         canvas.drawLine(p1, p2, p);
       }
     }
 
     final picture = recorder.endRecording();
-    var canvasSize = min(MediaQuery.of(context).size.width,
-        MediaQuery.of(context).size.height / 2);
+    var canvasSize = 280;
     int w = canvasSize.toInt();
     int h = canvasSize.toInt();
     ui.Image tmp = await picture.toImage(w, h);
     //tmpの解像度を28*28に変更
     ui.Image tmp2 = await resizeImage(tmp);
     setState(() {
-      image = tmp;
+      uiimage = tmp;
     });
   }
 
@@ -183,7 +185,7 @@ class _MyHomePageState extends State<MyHomePage> {
   // 描画を全てクリアする
   void _tapClear() {
     setState(() {
-      image = null;
+      uiimage = null;
       lines.clear();
       nowPoints.clear();
       undoLines.clear();
@@ -242,8 +244,7 @@ class _MyHomePageState extends State<MyHomePage> {
   //====================================ページ部分===================================
   @override
   Widget build(BuildContext context) {
-    var canvasSize = min(MediaQuery.of(context).size.width,
-        MediaQuery.of(context).size.height / 2);
+    var canvasSize = 280.0;
     return Scaffold(
       primary: false,
       appBar: AppBar(
@@ -270,7 +271,7 @@ class _MyHomePageState extends State<MyHomePage> {
             height: canvasSize,
             margin: const EdgeInsets.all(20.0),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Colors.black,
               borderRadius: BorderRadius.circular(10.0),
               boxShadow: const [
                 BoxShadow(
@@ -289,7 +290,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 moveGestureDetector(details.localPosition);
               },
               child: CustomPaint(
-                painter: PaintCanvas(lines, nowPoints, image),
+                painter: PaintCanvas(lines, nowPoints, uiimage),
               ),
             ),
           ),
@@ -307,20 +308,49 @@ class _MyHomePageState extends State<MyHomePage> {
                 nowPoints.clear();
               });
               await setAllImage();
-              if (image == null) {
+              if (uiimage == null) {
                 return;
               }
 
-              // io.imageをimage.imageに変換
+              // io.image→Uint8のList→image.imageに変換
               var pngBytes =
-                  await image!.toByteData(format: ImageByteFormat.png);
+                  await uiimage!.toByteData(format: ImageByteFormat.png);
               Uint8List pngUint8List = pngBytes!.buffer.asUint8List();
               im.Image? imImage = im.decodeImage(pngUint8List);
-              im.Image imResize =
-                  im.copyResize(imImage!, width: 28, height: 28);
+              //編集
+              imImage = im.copyResize(imImage!, width: 28, height: 28);
+              //image.image→Uint8のListに変換(表示用)
+              pngUint8List = Uint8List.fromList(im.encodePng(imImage));
+              //image.image→pngBytesに変換(モデルに渡す用)
+
+              //画像を表示
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: Text('画像'),
+                    content: Container(
+                        width: 200,
+                        height: 200,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10.0),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.grey,
+                              offset: Offset(2.0, 2.0),
+                              blurRadius: 10.0,
+                            ),
+                          ],
+                        ),
+                        child: Image.memory(pngUint8List)),
+                  );
+                },
+              );
+
               print("予測");
               // 予測
-              String res = await predict(imResize);
+              String res = await predict_bin(pngUint8List);
               //var res = 0;
               print("終了");
               // 予測結果を表示
@@ -362,22 +392,35 @@ class _MyHomePageState extends State<MyHomePage> {
     return resizedImage;
   }
 
-  predict(im.Image imResize) async {
+  predict_bin(Uint8List pngBytes) async {
     //pytorch model
-    print("成功");
     Model imageModel = await PyTorchMobile.loadModel('assets/models/test.pt');
     //save to file
-    inspect(imageModel);
-    // var pngBytes = im.encodePng(imResize);
-    File f = await getImageFileFromAssets('6.png');
-    // await file.writeAsBytes(pngBytes);
-    var imagePrediction =
-        imageModel.getImagePrediction(f, 28, 28, "assets/labels/labels.csv");
-    inspect(imagePrediction);
+    //File f = await getImageFileFromAssets('6.png');
+    //Uint8List pngBytes = f.readAsBytesSync();
+    //fの輝度値を取得
+    var imagePrediction = imageModel.getImagePrediction(
+        pngBytes, 28, 28, "assets/labels/labels.csv");
     print("yes");
     print("imagePrediction: $imagePrediction");
     return imagePrediction;
   }
+
+  // predict(im.Image imResize) async {
+  //   //pytorch model
+  //   Model imageModel = await PyTorchMobile.loadModel('assets/models/test.pt');
+  //   //save to file
+  //   inspect(imageModel);
+  //   // var pngBytes = im.encodePng(imResize);
+  //   File f = await getImageFileFromAssets('6.png');
+  //   // await file.writeAsBytes(pngBytes);
+  //   var imagePrediction =
+  //       imageModel.getImagePrediction(f, 28, 28, "assets/labels/labels.csv");
+  //   inspect(imagePrediction);
+  //   print("yes");
+  //   print("imagePrediction: $imagePrediction");
+  //   return imagePrediction;
+  // }
 }
 
 // 実際に描画するキャンバス
@@ -402,7 +445,7 @@ class PaintCanvas extends CustomPainter {
     for (int i = 1; i < nowPoints.length; i++) {
       Offset p1 = nowPoints[i - 1];
       Offset p2 = nowPoints[i];
-      p.color = Colors.black;
+      p.color = Colors.white;
       canvas.drawLine(p1, p2, p);
     }
   }
