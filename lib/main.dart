@@ -298,7 +298,7 @@ class _MyHomePageState extends State<MyHomePage> {
             margin: EdgeInsets.all(20.0),
             padding: EdgeInsets.all(20.0),
             decoration: BoxDecoration(
-             color: Colors.white,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(10.0),
               boxShadow: const [
                 BoxShadow(
@@ -318,7 +318,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     Container(
                       width: 50,
                       height: 50,
-                      child: drewUint8Image==null?null:Image.memory(drewUint8Image!),
+                      child: drewUint8Image == null
+                          ? null
+                          : Image.memory(drewUint8Image!),
                     ),
                   ],
                 ),
@@ -326,7 +328,11 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     const Text("予測結果"),
                     Container(
-                      child: Text(result??"",style: TextStyle(fontSize: 50,fontWeight: FontWeight.bold),),
+                      child: Text(
+                        result ?? "",
+                        style: TextStyle(
+                            fontSize: 50, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ],
                 ),
@@ -334,7 +340,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           //予測ボタン
-        Container(
+          Container(
             margin: EdgeInsets.all(20.0),
             width: double.infinity,
             height: 50,
@@ -350,7 +356,10 @@ class _MyHomePageState extends State<MyHomePage> {
               ],
             ),
             child: ElevatedButton(
-              child: const Text('予測',style: TextStyle(fontWeight:FontWeight.bold),),
+              child: const Text(
+                '予測',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               onPressed: () async {
                 //ボタンを押したらキャンバスの画像を取得
                 if (nowPoints.isNotEmpty) {
@@ -426,7 +435,6 @@ class _MyHomePageState extends State<MyHomePage> {
         pngUint8List, 28, 28, "assets/labels/labels.csv");
     return imagePrediction;
   }
-
 }
 
 // 実際に描画するキャンバス
