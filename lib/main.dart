@@ -32,9 +32,6 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        snackBarTheme: const SnackBarThemeData(
-            actionTextColor: Colors.blueAccent,
-            contentTextStyle: TextStyle(color: Colors.white)),
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
@@ -249,6 +246,8 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       primary: false,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
         title: const Text('MNIST'),
         actions: <Widget>[
           IconButton(
@@ -295,67 +294,102 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
           ),
-          Row(
-            children: [
-              Column(
-                children: [
-                  Text("描いた画像"),
-                  Container(
-                    child: drewUint8Image==null?null:Image.memory(drewUint8Image!),
-                  ),
-                ],
-              ),
-              Column(
-                children: [
-                  Text("予測結果"),
-                  Container(
-                    child: Text(result??""),
-                  ),
-                ],
-              ),
-            ],
+          Container(
+            margin: EdgeInsets.all(20.0),
+            padding: EdgeInsets.all(20.0),
+            decoration: BoxDecoration(
+             color: Colors.white,
+              borderRadius: BorderRadius.circular(10.0),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.grey,
+                  offset: Offset(2.0, 2.0),
+                  blurRadius: 10.0,
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  children: [
+                    const Text("描いた画像"),
+                    Container(
+                      width: 50,
+                      height: 50,
+                      child: drewUint8Image==null?null:Image.memory(drewUint8Image!),
+                    ),
+                  ],
+                ),
+                Column(
+                  children: [
+                    const Text("予測結果"),
+                    Container(
+                      child: Text(result??"",style: TextStyle(fontSize: 50,fontWeight: FontWeight.bold),),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
           //予測ボタン
-          ElevatedButton(
-            child: const Text('予測'),
-            onPressed: () async {
-              //ボタンを押したらキャンバスの画像を取得
-              if (nowPoints.isNotEmpty) {
-                LinePoints l = LinePoints(List<Offset>.from(nowPoints));
-                lines.add(l);
-                await setOldImage(); // 画像を更新
-              }
-              setState(() {
-                nowPoints.clear();
-              });
-              await setAllImage();
-              if (uiimage == null) {
-                return;
-              }
+        Container(
+            margin: EdgeInsets.all(20.0),
+            width: double.infinity,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10.0),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.grey,
+                  offset: Offset(2.0, 2.0),
+                  blurRadius: 10.0,
+                ),
+              ],
+            ),
+            child: ElevatedButton(
+              child: const Text('予測',style: TextStyle(fontWeight:FontWeight.bold),),
+              onPressed: () async {
+                //ボタンを押したらキャンバスの画像を取得
+                if (nowPoints.isNotEmpty) {
+                  LinePoints l = LinePoints(List<Offset>.from(nowPoints));
+                  lines.add(l);
+                  await setOldImage(); // 画像を更新
+                }
+                setState(() {
+                  nowPoints.clear();
+                });
+                await setAllImage();
+                if (uiimage == null) {
+                  return;
+                }
 
-              // io.image→Uint8のList→image.imageに変換
-              var pngBytes =
-                  await uiimage!.toByteData(format: ImageByteFormat.png);
-              Uint8List pngUint8List = pngBytes!.buffer.asUint8List();
-              im.Image? imImage = im.decodeImage(pngUint8List);
-              //編集
-              imImage = im.copyResize(imImage!, width: 28, height: 28);
-              //image.image→Uint8のListに変換(表示用,モデルに渡す用)
-              pngUint8List = Uint8List.fromList(im.encodePng(imImage));
-              setState(() {
-                drewUint8Image = pngUint8List;
-              });
+                // io.image→Uint8のList→image.imageに変換
+                var pngBytes =
+                    await uiimage!.toByteData(format: ImageByteFormat.png);
+                Uint8List pngUint8List = pngBytes!.buffer.asUint8List();
+                im.Image? imImage = im.decodeImage(pngUint8List);
+                //編集
+                imImage = im.copyResize(imImage!, width: 28, height: 28);
+                //image.image→Uint8のListに変換(表示用,モデルに渡す用)
+                pngUint8List = Uint8List.fromList(im.encodePng(imImage));
+                setState(() {
+                  drewUint8Image = pngUint8List;
+                });
 
-              print("予測");
-              // 予測
-              String res = await predictPngData(pngUint8List);
-              //var res = 0;
-              print("終了");
-              // 予測結果を表示
-              setState(() {
-                result = res;
-              });
-            },
+                print("予測");
+                // 予測
+                String res = await predictPngData(pngUint8List);
+                //var res = 0;
+                print("終了");
+                // 予測結果を表示
+                setState(() {
+                  result = res;
+                });
+              },
+            ),
           ),
         ],
       ),
