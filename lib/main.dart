@@ -319,9 +319,8 @@ class _MyHomePageState extends State<MyHomePage> {
               im.Image? imImage = im.decodeImage(pngUint8List);
               //編集
               imImage = im.copyResize(imImage!, width: 28, height: 28);
-              //image.image→Uint8のListに変換(表示用)
+              //image.image→Uint8のListに変換(表示用,モデルに渡す用)
               pngUint8List = Uint8List.fromList(im.encodePng(imImage));
-              //image.image→pngBytesに変換(モデルに渡す用)
 
               //画像を表示
               showDialog(
@@ -350,7 +349,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
               print("予測");
               // 予測
-              String res = await predict_bin(pngUint8List);
+              String res = await predictPngData(pngUint8List);
               //var res = 0;
               print("終了");
               // 予測結果を表示
@@ -392,35 +391,15 @@ class _MyHomePageState extends State<MyHomePage> {
     return resizedImage;
   }
 
-  predict_bin(Uint8List pngBytes) async {
+  predictPngData(Uint8List pngUint8List) async {
     //pytorch model
     Model imageModel = await PyTorchMobile.loadModel('assets/models/test.pt');
-    //save to file
-    //File f = await getImageFileFromAssets('6.png');
-    //Uint8List pngBytes = f.readAsBytesSync();
-    //fの輝度値を取得
+    //PytorchMobileのデフォルトの引数は画像のパスだが、中身のpngDataのUint8Listを渡せるように変更している。
     var imagePrediction = imageModel.getImagePrediction(
-        pngBytes, 28, 28, "assets/labels/labels.csv");
-    print("yes");
-    print("imagePrediction: $imagePrediction");
+        pngUint8List, 28, 28, "assets/labels/labels.csv");
     return imagePrediction;
   }
 
-  // predict(im.Image imResize) async {
-  //   //pytorch model
-  //   Model imageModel = await PyTorchMobile.loadModel('assets/models/test.pt');
-  //   //save to file
-  //   inspect(imageModel);
-  //   // var pngBytes = im.encodePng(imResize);
-  //   File f = await getImageFileFromAssets('6.png');
-  //   // await file.writeAsBytes(pngBytes);
-  //   var imagePrediction =
-  //       imageModel.getImagePrediction(f, 28, 28, "assets/labels/labels.csv");
-  //   inspect(imagePrediction);
-  //   print("yes");
-  //   print("imagePrediction: $imagePrediction");
-  //   return imagePrediction;
-  // }
 }
 
 // 実際に描画するキャンバス
