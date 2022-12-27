@@ -59,6 +59,10 @@ class _MyHomePageState extends State<MyHomePage> {
   ui.Image? uiimage;
   Uint8List? drewUint8Image;
   String? result;
+  List? resList;
+  String modelType = "MNIST";
+  List kmnist = ["お", "き", "す", "つ", "な", "は", "ま", "や", "れ", "を"];
+  List mnist = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
   // ジェスチャー移動を検知
   void moveGestureDetector(Offset localPosition) {
     if (!isDrawing) {
@@ -248,7 +252,28 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
-        title: const Text('MNIST'),
+        title: DropdownButton(
+          //4
+          items: const [
+            //5
+            DropdownMenuItem(
+              value: 'MNIST',
+              child: Text('MNIST'),
+            ),
+            DropdownMenuItem(
+              value: 'KMNIST',
+              child: Text('KMNIST'),
+            ),
+          ],
+          //6
+          onChanged: (String? value) {
+            setState(() {
+              modelType = value ?? 'MNIST';
+            });
+          },
+          //7
+          value: modelType,
+        ),
         actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.undo),
@@ -294,54 +319,14 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
           ),
-          Container(
-            margin: EdgeInsets.all(20.0),
-            padding: EdgeInsets.all(20.0),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10.0),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.grey,
-                  offset: Offset(2.0, 2.0),
-                  blurRadius: 10.0,
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  children: [
-                    const Text("描いた画像"),
-                    Container(
-                      width: 50,
-                      height: 50,
-                      child: drewUint8Image == null
-                          ? null
-                          : Image.memory(drewUint8Image!),
-                    ),
-                  ],
-                ),
-                Column(
-                  children: [
-                    const Text("予測結果"),
-                    Container(
-                      child: Text(
-                        result ?? "",
-                        style: TextStyle(
-                            fontSize: 50, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          ResultBox(
+              drewUint8Image: drewUint8Image,
+              result: result,
+              resList: resList,
+              labels: (modelType == "MNIST") ? mnist : kmnist),
           //予測ボタン
           Container(
-            margin: EdgeInsets.all(20.0),
+            margin: const EdgeInsets.all(20.0),
             width: double.infinity,
             height: 50,
             decoration: BoxDecoration(
@@ -390,12 +375,29 @@ class _MyHomePageState extends State<MyHomePage> {
 
                 print("予測");
                 // 予測
-                String res = await predictPngData(pngUint8List);
+                var res = await predictPngData(pngUint8List);
+
                 //var res = 0;
                 print("終了");
                 // 予測結果を表示
-                setState(() {
-                  result = res;
+                print("res: $res");
+
+                double maxScore = double.negativeInfinity;
+                int maxScoreIndex = -1;
+                for (int i = 0; i < res!.length; i++) {
+                  if (res[i] > maxScore) {
+                    maxScore = res[i];
+                    maxScoreIndex = i;
+                  }
+                }
+
+                final maxIndex = setState(() {
+                  if (modelType == "MNIST") {
+                    result = mnist[maxScoreIndex].toString();
+                  } else {
+                    result = kmnist[maxScoreIndex].toString();
+                  }
+                  resList = res;
                 });
               },
             ),
@@ -429,11 +431,107 @@ class _MyHomePageState extends State<MyHomePage> {
 
   predictPngData(Uint8List pngUint8List) async {
     //pytorch model
-    Model imageModel = await PyTorchMobile.loadModel('assets/models/test.pt');
+    String path = "";
+    if (modelType == "MNIST") {
+      path = 'assets/models/test.pt';
+    } else {
+      path = 'assets/models/cnn_kmnist.pt';
+    }
+    Model imageModel = await PyTorchMobile.loadModel(path);
     //PytorchMobileのデフォルトの引数は画像のパスだが、中身のpngDataのUint8Listを渡せるように変更している。
-    var imagePrediction = imageModel.getImagePrediction(
-        pngUint8List, 28, 28, "assets/labels/labels.csv");
+    var imagePrediction =
+        imageModel.getImagePredictionList(pngUint8List, 28, 28);
     return imagePrediction;
+  }
+}
+
+class ResultBox extends StatelessWidget {
+  const ResultBox({
+    super.key,
+    required this.drewUint8Image,
+    required this.result,
+    required this.resList,
+    required this.labels,
+  });
+
+  final Uint8List? drewUint8Image;
+  final String? result;
+  final List? resList;
+  final List labels;
+
+  @override
+  Widget build(BuildContext context) {
+    return Flexible(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20.0),
+        padding: const EdgeInsets.all(20.0),
+        height: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10.0),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.grey,
+              offset: Offset(2.0, 2.0),
+              blurRadius: 10.0,
+            ),
+          ],
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    children: [
+                      const Text("描いた画像"),
+                      Container(
+                        width: 50,
+                        height: 50,
+                        child: drewUint8Image == null
+                            ? null
+                            : Image.memory(drewUint8Image!),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    children: [
+                      const Text("予測結果"),
+                      Container(
+                        child: Text(
+                          result ?? "",
+                          style: const TextStyle(
+                              fontSize: 50, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              for (var index = 0; index < 10; index++)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 50),
+                  height: 30,
+                  child: Row(
+                    children: [
+                      Text(
+                        "${labels[index]}",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(
+                        width: 30,
+                      ),
+                      Text("${resList?[index] ?? ""}")
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
