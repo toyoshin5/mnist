@@ -60,7 +60,8 @@ class _MyHomePageState extends State<MyHomePage> {
   bool isOldDrawing = false;
   bool showPallet = true;
   ui.Image? uiimage;
-
+  Uint8List? drewUint8Image;
+  String? result;
   // ジェスチャー移動を検知
   void moveGestureDetector(Offset localPosition) {
     if (!isDrawing) {
@@ -294,6 +295,26 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
           ),
+          Row(
+            children: [
+              Column(
+                children: [
+                  Text("描いた画像"),
+                  Container(
+                    child: drewUint8Image==null?null:Image.memory(drewUint8Image!),
+                  ),
+                ],
+              ),
+              Column(
+                children: [
+                  Text("予測結果"),
+                  Container(
+                    child: Text(result??""),
+                  ),
+                ],
+              ),
+            ],
+          ),
           //予測ボタン
           ElevatedButton(
             child: const Text('予測'),
@@ -321,31 +342,9 @@ class _MyHomePageState extends State<MyHomePage> {
               imImage = im.copyResize(imImage!, width: 28, height: 28);
               //image.image→Uint8のListに変換(表示用,モデルに渡す用)
               pngUint8List = Uint8List.fromList(im.encodePng(imImage));
-
-              //画像を表示
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return AlertDialog(
-                    title: Text('画像'),
-                    content: Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10.0),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.grey,
-                              offset: Offset(2.0, 2.0),
-                              blurRadius: 10.0,
-                            ),
-                          ],
-                        ),
-                        child: Image.memory(pngUint8List)),
-                  );
-                },
-              );
+              setState(() {
+                drewUint8Image = pngUint8List;
+              });
 
               print("予測");
               // 予測
@@ -353,15 +352,9 @@ class _MyHomePageState extends State<MyHomePage> {
               //var res = 0;
               print("終了");
               // 予測結果を表示
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: Text('予測結果'),
-                    content: Text(res.toString()),
-                  );
-                },
-              );
+              setState(() {
+                result = res;
+              });
             },
           ),
         ],
